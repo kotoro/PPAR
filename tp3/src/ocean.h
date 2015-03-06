@@ -74,7 +74,12 @@ void display_ocean(fish_t *ocean, int n, int m)
 	  BLINK GREEN "TUNAS: %d\n", ns, nt);
   printf(RESET);
 } /* display_ocean */
+/*
+void update_ocean_part(fish_t * ocean, int n, int m, int * ns_north, int * nt_north, int * ns_south, int * nt_south)
+{
 
+}
+*/
 void update_ocean(fish_t *ocean, int n, int m)
 {
 

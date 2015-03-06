@@ -17,28 +17,25 @@
 
 int main (int argc, char ** argv)
 {
+  MPI_Init(&argc, &argv);
   MPI_Datatype MPI_FISH;
-
-  int i,rank,n;
-
+  
   // Description of the type fish_t
   int fish_lengths[2];
   fish_lengths[0] = sizeof(char);
   fish_lengths[1] = sizeof(char);
-
+  // Initialization
   MPI_Aint fish_offsets[2];
   fish_offsets[0] = offsetof(fish_t,type);
   fish_offsets[1] = offsetof(fish_t,moved);
 
   MPI_Datatype fish_types[2] = {MPI_CHAR, MPI_CHAR};
 
-  fish_t * ocean = (fish_t *)malloc(N*M*sizeof(fish_t));
-  // Receiver
-  fish_t * sea = (fish_t *)malloc(N*M*sizeof(fish_t));
+  int i,rank,n;
+  fish_t * ocean = NULL;
 
-  // Initialization
-  MPI_Init(&argc, &argv);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  printf("I am %d\n", rank);
   MPI_Comm_size(MPI_COMM_WORLD, &n);
 
   // Creation of the type MPI_FISH
@@ -46,25 +43,33 @@ int main (int argc, char ** argv)
   MPI_Type_commit(&MPI_FISH);
 
   // Initialization and display of the ocean
+  printf("Je suis %d\n", rank);
   if (rank == 0) {
+    ocean = (fish_t *)malloc(N*M*sizeof(fish_t));
     init_ocean(ocean, N, M, RATIO);
     printf(CLS "\n");
     display_ocean(ocean, N, M);
   }
 
+  // Receiver
+  fish_t * sea = (fish_t *)malloc(N*M/n*sizeof(fish_t));
+
   MPI_Scatter(ocean, N*M/n, MPI_FISH, sea, N*M/n, MPI_FISH, 0, MPI_COMM_WORLD);
 
   for (i = 0; i < WALL; i++) {
     usleep(STEP);
-    printf(CLS "\n");
-    update_ocean(ocean, N, M);
-
-    if (rank == 0) display_ocean(ocean, N, M);
+    update_ocean(sea, N/n, M);
   }
-
-  MPI_Finalize();
+  MPI_Gather(sea, N*M/n, MPI_FISH, ocean, N*M/n, MPI_FISH, 0, MPI_COMM_WORLD);
+  
+if (rank == 0)
+{
+  display_ocean(ocean, N, M);
+}
+  
   free(ocean);
   free(sea);
+  MPI_Finalize();
   return 0;
 } /* main */
 
