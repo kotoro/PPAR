@@ -32,10 +32,6 @@ int main (int argc, char ** argv)
 
   MPI_Datatype fish_types[2] = {MPI_CHAR, MPI_CHAR};
 
-  // Creation of the type MPI_FISH
-  MPI_Type_create_struct(2, fish_lengths, fish_offsets, fish_types,&MPI_FISH);  
-  MPI_Type_commit(&MPI_FISH);
-
   fish_t * ocean = (fish_t *)malloc(N*M*sizeof(fish_t));
   // Receiver
   fish_t * sea = (fish_t *)malloc(N*M*sizeof(fish_t));
@@ -44,6 +40,10 @@ int main (int argc, char ** argv)
   MPI_Init(&argc, &argv);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &n);
+
+  // Creation of the type MPI_FISH
+  MPI_Type_create_struct(2, fish_lengths, fish_offsets, fish_types,&MPI_FISH);  
+  MPI_Type_commit(&MPI_FISH);
 
   // Initialization and display of the ocean
   if (rank == 0) {
@@ -58,10 +58,13 @@ int main (int argc, char ** argv)
     usleep(STEP);
     printf(CLS "\n");
     update_ocean(ocean, N, M);
-    display_ocean(ocean, N, M);
+
+    if (rank == 0) display_ocean(ocean, N, M);
   }
 
   MPI_Finalize();
+  free(ocean);
+  free(sea);
   return 0;
 } /* main */
 
