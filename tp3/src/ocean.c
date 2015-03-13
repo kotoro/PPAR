@@ -17,6 +17,9 @@
 
 int main (int argc, char ** argv)
 {
+  MPI_Request request1, request2, request3, request4;
+  MPI_Status status1, status2, status3, status4;
+
   MPI_Init(&argc, &argv);
   MPI_Datatype MPI_FISH;
   
@@ -32,10 +35,11 @@ int main (int argc, char ** argv)
   MPI_Datatype fish_types[2] = {MPI_CHAR, MPI_CHAR};
 
   int i,rank,n;
+  int ns_north = 0, ns_south = 0;
+  int nt_north = 0, nt_south = 0;
   fish_t * ocean = NULL;
 
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  printf("I am %d\n", rank);
   MPI_Comm_size(MPI_COMM_WORLD, &n);
 
   // Creation of the type MPI_FISH
@@ -43,7 +47,6 @@ int main (int argc, char ** argv)
   MPI_Type_commit(&MPI_FISH);
 
   // Initialization and display of the ocean
-  printf("Je suis %d\n", rank);
   if (rank == 0) {
     ocean = (fish_t *)malloc(N*M*sizeof(fish_t));
     init_ocean(ocean, N, M, RATIO);
@@ -58,14 +61,38 @@ int main (int argc, char ** argv)
 
   for (i = 0; i < WALL; i++) {
     usleep(STEP);
-    update_ocean(sea, N/n, M);
+    update_ocean_part(sea, N/n, M, &ns_north, &nt_north, &ns_south, &nt_south);
+
+    // Send to northest part
+    printf(" Rank %d : s ->%d , t -> %d\n", rank, ns_north, nt_north); 
+    MPI_Isend(sea, ns_north, MPI_FISH, (rank+1)%n, 0, MPI_COMM_WORLD, &request1);
+    //MPI_Isend(sea, nt_north, MPI_FISH, (rank+1)%n, 0, MPI_COMM_WORLD, &request2);
+    
+    // Send to southest part
+    int tmp = rank-1%n;
+    //MPI_Isend(sea, ns_south, MPI_FISH, (tmp<0?-tmp:tmp), 0,  MPI_COMM_WORLD, &request3);
+    //MPI_Isend(sea, nt_south, MPI_FISH, (tmp<0?-tmp:tmp), 0, MPI_COMM_WORLD, &request4);
+    
+    // Receive from northest part 
+    MPI_Recv(sea, ns_north, MPI_FISH, (rank+1)%n, 0, MPI_COMM_WORLD, &status1);
+    //MPI_Recv(sea, nt_north, MPI_FISH, (rank+1)%n, 0, MPI_COMM_WORLD, &status2);
+    
+    // Send to southest part
+    //MPI_Recv(sea, ns_south, MPI_FISH, (tmp<0?-tmp:tmp), 0, MPI_COMM_WORLD, &status3);
+    //MPI_Recv(sea, nt_south, MPI_FISH, (tmp<0?-tmp:tmp), 0, MPI_COMM_WORLD, &status4);
+
+    MPI_Wait(&request1,&status1);
+    //MPI_Wait(&request2,&status2);
+    //MPI_Wait(&request3,&status3);
+    //MPI_Wait(&request4,&status4);
+    printf(" Data send Rank %d : s ->%d , t -> %d\n", rank, ns_north, nt_north); 
   }
   MPI_Gather(sea, N*M/n, MPI_FISH, ocean, N*M/n, MPI_FISH, 0, MPI_COMM_WORLD);
   
-if (rank == 0)
-{
-  display_ocean(ocean, N, M);
-}
+  if (rank == 0)
+  {
+    display_ocean(ocean, N, M);
+  }
   
   free(ocean);
   free(sea);

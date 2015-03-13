@@ -74,12 +74,78 @@ void display_ocean(fish_t *ocean, int n, int m)
 	  BLINK GREEN "TUNAS: %d\n", ns, nt);
   printf(RESET);
 } /* display_ocean */
-/*
+
 void update_ocean_part(fish_t * ocean, int n, int m, int * ns_north, int * nt_north, int * ns_south, int * nt_south)
 {
+	int i,j;
+  int next_i, next_j;
+  int rd;
 
+  /* Reinitiate the moved values */
+  for (i = 0; i < n; i++)
+    for (j = 0; j < m; j++)
+      ocean[i*m+j].moved = 0;
+
+  for (i = 0; i < n; i++) {
+    for (j = 0; j < m; j++) {
+      if (ocean[i*m+j].moved == 0) {
+	/* compute the next position (systematically) */
+	rd = rand() % 100;
+	if (rd < 25) { /* -> N */
+	  next_i = i - 1;
+	  if (next_i == -1) { 
+	  	next_i = n - 1;
+	  }
+	  next_j = j;
+	}
+	else if (rd < 50) { /* -> E */
+	  next_i = i;
+	  next_j = (j + 1) % m;
+	}
+	else if (rd < 75) { /* -> S */
+	  next_i = (i + 1) % n;
+	  next_j = j;
+	}
+	else { /* -> W */
+	  next_i = i;
+	  next_j = (j-1) % m;
+	  if (next_j == -1) next_j = m - 1;
+	}
+
+	/* if I am a shark -- I move if no sharks is already here
+	   and eats tuna if some (implicit) */
+	if (ocean[i*m+j].type == 'S'){
+	  if (ocean[next_i*m+next_j].type != 'S') {
+	    ocean[next_i*m+next_j].type = 'S';
+	    ocean[next_i*m+next_j].moved = 1;
+	    ocean[i*m+j].type = 'F';
+	    
+	    if ((i == 0) && (next_i == n-1)) { // if a shark goes to north
+	    	(*ns_north)++;
+	    } else if ((i == 0) && (next_i == n-1)) { // if a shark goes to south
+	    	(*ns_south)++;
+	    }
+	  }
+	} /* fi 'S' */
+	  /* If I am a tuna, I move whenever it's free */
+	else if (ocean[i*m+j].type == 'T'){
+	  if (ocean[next_i*m+next_j].type == 'F'){
+	    ocean[next_i*m+next_j].type = 'T';
+	    ocean[next_i*m+next_j].moved = 1;
+	    ocean[i*m+j].type = 'F';
+	    
+	    if ((i == 0) && (next_i == n-1)) { // if a tuna goes to north
+	    	(*nt_north)++;
+	    } else if ((i == 0) && (next_i == n-1)) { // if a tuna goes to south
+	    	(*nt_south)++;
+	    }
+	  }
+	} /* fi 'T' */
+      } /* fi !moved */
+    } /* for j */
+  } /* for i */
 }
-*/
+
 void update_ocean(fish_t *ocean, int n, int m)
 {
 
